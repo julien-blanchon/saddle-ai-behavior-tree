@@ -1,0 +1,23 @@
+[workspace]
+members = [
+    "common",
+    "basic",
+    "reactive_abort",
+    "subtree_scope",
+    "services",
+    "async_action",
+    "debug_overlay",
+    "hot_swap",
+    "stress_test",
+    "lab",
+]
+resolver = "3"
+
+[workspace.dependencies]
+bevy = { version = "0.18", features = ["serialize"] }
+saddle-ai-behavior-tree = { path = ".." }
+
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
+nonstandard_macro_braces = "warn"

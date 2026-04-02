@@ -1,0 +1,18 @@
+[package]
+name = "saddle-ai-behavior-tree"
+version = "0.1.0"
+edition = "2024"
+publish = false
+repository = "https://github.com/julien-blanchon/saddle-ai-behavior-tree"
+license = "MIT-0"
+description = "Reusable behavior tree runtime for Bevy"
+
+[dependencies]
+bevy = { version = "0.18", features = ["serialize"] }
+
+[workspace]
+
+[lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
+nonstandard_macro_braces = "warn"

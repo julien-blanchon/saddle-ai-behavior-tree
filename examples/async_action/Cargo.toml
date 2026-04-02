@@ -1,0 +1,13 @@
+[package]
+name = "saddle-ai-behavior-tree-example-async-action"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bevy = { workspace = true }
+saddle-ai-behavior-tree = { workspace = true }
+saddle-ai-behavior-tree-example-common = { path = "../common" }
+
+[lints]
+workspace = true
