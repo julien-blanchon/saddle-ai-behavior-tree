@@ -1,4 +1,4 @@
-use std::time::Instant;
+use bevy::platform::time::Instant;
 
 use bevy::diagnostic::FrameCount;
 use bevy::prelude::*;
