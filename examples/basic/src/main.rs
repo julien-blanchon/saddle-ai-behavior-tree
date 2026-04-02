@@ -1,7 +1,9 @@
 use saddle_ai_behavior_tree_example_common as common;
 
-use saddle_ai_behavior_tree::{ActionHandler, BehaviorStatus, BehaviorTreeConfig, ConditionHandler};
 use bevy::prelude::*;
+use saddle_ai_behavior_tree::{
+    ActionHandler, BehaviorStatus, BehaviorTreeConfig, ConditionHandler,
+};
 
 fn main() {
     let mut app = common::headless_app();

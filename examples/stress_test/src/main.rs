@@ -1,7 +1,7 @@
 use saddle_ai_behavior_tree_example_common as common;
 
-use saddle_ai_behavior_tree::{ActionHandler, BehaviorStatus, BehaviorTreeConfig, TickMode};
 use bevy::prelude::*;
+use saddle_ai_behavior_tree::{ActionHandler, BehaviorStatus, BehaviorTreeConfig, TickMode};
 
 fn main() {
     let mut app = common::headless_app();
@@ -25,14 +25,16 @@ fn main() {
     );
     for _ in 0..2_048 {
         app.world_mut().spawn(
-            saddle_ai_behavior_tree::BehaviorTreeAgent::new(definition_id).with_config(BehaviorTreeConfig {
-                tick_mode: TickMode::Interval {
-                    seconds: 0.016,
-                    phase_offset: 0.0,
+            saddle_ai_behavior_tree::BehaviorTreeAgent::new(definition_id).with_config(
+                BehaviorTreeConfig {
+                    tick_mode: TickMode::Interval {
+                        seconds: 0.016,
+                        phase_offset: 0.0,
+                    },
+                    restart_on_completion: true,
+                    ..Default::default()
                 },
-                restart_on_completion: true,
-                ..Default::default()
-            }),
+            ),
         );
     }
     app.add_systems(Update, report_stress);

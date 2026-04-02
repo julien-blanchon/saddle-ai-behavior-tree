@@ -1,10 +1,10 @@
 use saddle_ai_behavior_tree_example_common as common;
 
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     AbortPolicy, ActionHandler, BehaviorStatus, BehaviorTreeBuilder, BehaviorTreeConfig,
     BlackboardKeyDirection, ConditionHandler,
 };
-use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 struct FlipTimer(Timer);

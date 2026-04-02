@@ -1,13 +1,13 @@
 use std::time::Duration;
 
+use bevy::app::ScheduleRunnerPlugin;
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
     BehaviorTreeHandlers, BehaviorTreeLibrary, BehaviorTreePlugin, BehaviorTreeSystems,
     BlackboardKeyDirection, BlackboardKeyId, BlackboardValueChanged, BranchAborted,
     ConditionHandler, NodeFinished, NodeStarted, ServiceHandler, TreeCompleted,
 };
-use bevy::app::ScheduleRunnerPlugin;
-use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct ExitTimer(pub Timer);
@@ -116,7 +116,10 @@ pub fn register_service(app: &mut App, name: &str, handler: ServiceHandler) {
         .register_service(name, handler);
 }
 
-pub fn basic_definition() -> (saddle_ai_behavior_tree::BehaviorTreeDefinition, BlackboardKeyId) {
+pub fn basic_definition() -> (
+    saddle_ai_behavior_tree::BehaviorTreeDefinition,
+    BlackboardKeyId,
+) {
     let mut builder = BehaviorTreeBuilder::new("basic");
     let ready = builder.bool_key("ready", BlackboardKeyDirection::Input, false, Some(true));
     let condition = builder.condition_with_watch_keys("Ready", "ready", [ready]);

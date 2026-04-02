@@ -1,10 +1,10 @@
 use saddle_ai_behavior_tree_example_common as common;
 
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeBuilder, BehaviorTreeConfig, ServiceBinding,
     ServiceHandler,
 };
-use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 struct Pulse(u32);

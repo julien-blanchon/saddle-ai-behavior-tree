@@ -1,10 +1,10 @@
 use saddle_ai_behavior_tree_example_common as common;
 
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeBuilder, BehaviorTreeConfig, BehaviorTreeLibrary,
     TreeResetRequested,
 };
-use bevy::prelude::*;
 
 #[derive(Resource)]
 struct SwapState {
@@ -39,10 +39,12 @@ fn main() {
     let entity = app
         .world_mut()
         .spawn(
-            saddle_ai_behavior_tree::BehaviorTreeAgent::new(first_id).with_config(BehaviorTreeConfig {
-                emit_lifecycle_messages: true,
-                ..Default::default()
-            }),
+            saddle_ai_behavior_tree::BehaviorTreeAgent::new(first_id).with_config(
+                BehaviorTreeConfig {
+                    emit_lifecycle_messages: true,
+                    ..Default::default()
+                },
+            ),
         )
         .id();
     common::register_action(

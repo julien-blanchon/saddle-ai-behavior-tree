@@ -1,10 +1,10 @@
+use bevy::gizmos::prelude::AppGizmoBuilder;
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
     BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeLibrary, BehaviorTreePlugin,
     BlackboardKeyDirection, NodeId,
 };
-use bevy::gizmos::prelude::AppGizmoBuilder;
-use bevy::prelude::*;
 
 #[derive(Resource)]
 struct DemoKey(saddle_ai_behavior_tree::BlackboardKeyId);

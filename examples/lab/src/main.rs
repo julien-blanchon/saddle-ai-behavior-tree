@@ -1,11 +1,11 @@
+use bevy::gizmos::prelude::AppGizmoBuilder;
+use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
     BehaviorTreeDebugGizmos, BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeLibrary,
     BehaviorTreePlugin, BehaviorTreeSystems, BlackboardKeyDirection, BlackboardKeyId,
     BranchAborted, ConditionHandler, ServiceBinding, ServiceHandler, TreeCompleted,
 };
-use bevy::gizmos::prelude::AppGizmoBuilder;
-use bevy::prelude::*;
 
 #[derive(Component)]
 struct LabAgent;
