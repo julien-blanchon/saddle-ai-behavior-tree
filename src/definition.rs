@@ -4,10 +4,14 @@ use serde::{Deserialize, Serialize};
 use crate::blackboard::{BlackboardKeyId, BlackboardSchema};
 use crate::nodes::{NodeKind, ServiceBinding};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize,
+)]
 pub struct BehaviorTreeDefinitionId(pub u16);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize,
+)]
 pub struct NodeId(pub u16);
 
 #[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]

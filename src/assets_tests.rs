@@ -1,7 +1,5 @@
 use super::*;
-use crate::{
-    AbortPolicy, BehaviorTreeBuilder, BehaviorTreeLibrary, BlackboardKeyDirection,
-};
+use crate::{AbortPolicy, BehaviorTreeBuilder, BehaviorTreeLibrary, BlackboardKeyDirection};
 
 #[test]
 fn behavior_tree_asset_round_trips_through_ron() {
@@ -16,11 +14,7 @@ fn behavior_tree_asset_round_trips_through_ron() {
     let attack = builder.action("Attack", "attack");
     let patrol = builder.action("Patrol", "patrol");
     let combat = builder.sequence("Combat", [can_attack, attack]);
-    let root = builder.reactive_selector(
-        "Root",
-        AbortPolicy::LowerPriority,
-        [combat, patrol],
-    );
+    let root = builder.reactive_selector("Root", AbortPolicy::LowerPriority, [combat, patrol]);
     builder.set_root(root);
 
     let asset = BehaviorTreeDefinitionAsset::from(builder.build().unwrap());

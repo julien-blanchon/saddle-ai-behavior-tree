@@ -1,6 +1,5 @@
-use bevy::platform::time::Instant;
-
 use bevy::diagnostic::FrameCount;
+use bevy::platform::time::Instant;
 use bevy::prelude::*;
 
 use crate::blackboard::BehaviorTreeBlackboard;
