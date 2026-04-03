@@ -43,6 +43,10 @@ The public sets map to the following responsibilities:
 
 The result is shareable, inspectable, and compatible with future serialized authoring.
 
+## Asset Definitions
+
+`BehaviorTreeDefinitionAssetLoader` feeds serialized `.bt.ron` trees into the same `BehaviorTreeLibrary` used by Rust-authored definitions. Asset loading therefore changes authoring flow, not runtime semantics: once registered, loaded trees use the same flat-node layout, watch-key preprocessing, and handler indirection.
+
 ## Runtime Model
 
 Each controlled entity owns:

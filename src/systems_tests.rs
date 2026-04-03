@@ -27,7 +27,7 @@ fn services_run_without_panicking() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     app.init_resource::<ServiceCounter>();
     let definition_id = app
@@ -68,7 +68,7 @@ fn blackboard_change_wakes_tree() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()

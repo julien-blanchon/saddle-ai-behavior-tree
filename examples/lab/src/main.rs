@@ -6,6 +6,7 @@ use saddle_ai_behavior_tree::{
     BehaviorTreePlugin, BehaviorTreeSystems, BlackboardKeyDirection, BlackboardKeyId,
     BranchAborted, ConditionHandler, ServiceBinding, ServiceHandler, TreeCompleted,
 };
+use saddle_pane::prelude::*;
 
 #[derive(Component)]
 struct LabAgent;
@@ -30,16 +31,53 @@ struct LabStats {
     last_completed_status: Option<BehaviorStatus>,
 }
 
+#[derive(Resource, Clone, Pane)]
+#[pane(title = "Behavior Tree Lab")]
+struct BehaviorTreeLabPane {
+    #[pane(slider, min = 0.1, max = 2.5, step = 0.05)]
+    time_scale: f32,
+    #[pane(slider, min = 1.0, max = 12.0, step = 0.1)]
+    visibility_radius: f32,
+    #[pane(slider, min = -6.0, max = 4.0, step = 0.1)]
+    visibility_gate_x: f32,
+    #[pane(slider, min = 0.5, max = 6.0, step = 0.1)]
+    chase_speed: f32,
+    #[pane(slider, min = 1.0, max = 6.0, step = 0.1)]
+    patrol_radius: f32,
+}
+
+impl Default for BehaviorTreeLabPane {
+    fn default() -> Self {
+        Self {
+            time_scale: 1.0,
+            visibility_radius: 6.0,
+            visibility_gate_x: -1.5,
+            chase_speed: 2.75,
+            patrol_radius: 2.6,
+        }
+    }
+}
+
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
+    app.add_plugins((
+        bevy_flair::FlairPlugin,
+        bevy_input_focus::InputDispatchPlugin,
+        bevy_ui_widgets::UiWidgetsPlugins,
+        bevy_input_focus::tab_navigation::TabNavigationPlugin,
+        saddle_pane::PanePlugin,
+    ));
     app.init_gizmo_group::<BehaviorTreeDebugGizmos>();
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     app.init_resource::<LabStats>();
+    app.init_resource::<BehaviorTreeLabPane>();
+    app.register_pane::<BehaviorTreeLabPane>();
     app.add_systems(Startup, setup);
     app.add_systems(
         Update,
         (
+            sync_pane_to_runtime,
             animate_target,
             sync_overlay.after(BehaviorTreeSystems::Cleanup),
             record_runtime_messages.after(BehaviorTreeSystems::Apply),
@@ -47,6 +85,15 @@ fn main() {
     );
 
     app.run();
+}
+
+fn sync_pane_to_runtime(
+    pane: Res<BehaviorTreeLabPane>,
+    mut virtual_time: ResMut<Time<Virtual>>,
+) {
+    if pane.is_changed() {
+        virtual_time.set_relative_speed(pane.time_scale.max(0.1));
+    }
 }
 
 fn setup(
@@ -163,7 +210,9 @@ fn setup(
 
             let to_target = target_position - agent_position;
             let distance = to_target.length();
-            let visible = distance < 6.0 && target_position.x > -1.5;
+            let pane = ctx.world.resource::<BehaviorTreeLabPane>();
+            let visible =
+                distance < pane.visibility_radius && target_position.x > pane.visibility_gate_x;
             ctx.blackboard
                 .set(distance_to_target, distance)
                 .expect("distance key type should match");
@@ -206,7 +255,8 @@ fn setup(
                     return BehaviorStatus::Success;
                 }
 
-                let step = offset.normalize_or_zero() * (2.75 * delta_seconds);
+                let chase_speed = ctx.world.resource::<BehaviorTreeLabPane>().chase_speed;
+                let step = offset.normalize_or_zero() * (chase_speed * delta_seconds);
                 if let Some(mut transform) = ctx.world.get_mut::<Transform>(ctx.entity) {
                     transform.translation += step;
                 }
@@ -221,7 +271,7 @@ fn setup(
             |_ctx| BehaviorStatus::Running,
             |ctx| {
                 let elapsed = ctx.world.resource::<Time>().elapsed_secs();
-                let radius = 2.6;
+                let radius = ctx.world.resource::<BehaviorTreeLabPane>().patrol_radius;
                 let desired = Vec3::new(
                     radius * (elapsed * 0.6).cos(),
                     0.55,

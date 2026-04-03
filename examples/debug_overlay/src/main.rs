@@ -1,9 +1,11 @@
+use saddle_ai_behavior_tree_example_common as common;
+
 use bevy::gizmos::prelude::AppGizmoBuilder;
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
-    BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeLibrary, BehaviorTreePlugin,
-    BlackboardKeyDirection, NodeId,
+    BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeLibrary, BlackboardKeyDirection,
+    NodeId,
 };
 
 #[derive(Resource)]
@@ -13,10 +15,8 @@ struct DemoKey(saddle_ai_behavior_tree::BlackboardKeyId);
 struct DemoAgent(Entity);
 
 fn main() {
-    let mut app = App::new();
-    app.add_plugins(DefaultPlugins);
+    let mut app = common::headless_app();
     app.init_gizmo_group::<saddle_ai_behavior_tree::BehaviorTreeDebugGizmos>();
-    app.add_plugins(BehaviorTreePlugin::always_on(Update));
     app.add_systems(Startup, setup);
     app.add_systems(Update, (update_overlay, tick_target, exit_after));
     app.run();
@@ -27,7 +27,6 @@ fn setup(
     mut library: ResMut<BehaviorTreeLibrary>,
     mut handlers: ResMut<BehaviorTreeHandlers>,
 ) {
-    commands.spawn(Camera2d);
     let mut builder = BehaviorTreeBuilder::new("debug_overlay");
     let alert = builder.bool_key("alert", BlackboardKeyDirection::Input, false, Some(false));
     let alert_condition = builder.condition_with_watch_keys("Alert", "alert", [alert]);

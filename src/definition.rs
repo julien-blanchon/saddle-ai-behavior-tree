@@ -1,15 +1,16 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blackboard::{BlackboardKeyId, BlackboardSchema};
 use crate::nodes::{NodeKind, ServiceBinding};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
 pub struct BehaviorTreeDefinitionId(pub u16);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
 pub struct NodeId(pub u16);
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct NodeDefinition {
     pub id: NodeId,
     pub name: String,
@@ -21,7 +22,7 @@ pub struct NodeDefinition {
     pub watch_keys: Vec<BlackboardKeyId>,
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct BehaviorTreeDefinition {
     pub name: String,
     pub root: NodeId,

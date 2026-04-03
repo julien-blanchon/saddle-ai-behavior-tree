@@ -20,7 +20,7 @@ struct Counter(u32);
 
 fn spawn_app(definition: crate::definition::BehaviorTreeDefinition) -> (App, Entity) {
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     app.init_resource::<TestLog>();
     app.init_resource::<Counter>();

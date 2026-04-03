@@ -1,16 +1,17 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blackboard::{BlackboardCondition, BlackboardKeyId};
 use crate::handlers::{ActionKey, ConditionKey, ServiceKey};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum BehaviorStatus {
     Success,
     Failure,
     Running,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum AbortPolicy {
     None,
     SelfOnly,
@@ -28,28 +29,28 @@ impl AbortPolicy {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum SequenceKind {
     Sequence,
     SequenceWithMemory,
     ReactiveSequence,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum SelectorKind {
     Selector,
     SelectorWithMemory,
     ReactiveSelector { abort_policy: AbortPolicy },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum ParallelThreshold {
     Any,
     All,
     AtLeast(u16),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct ParallelPolicy {
     pub success: ParallelThreshold,
     pub failure: ParallelThreshold,
@@ -74,7 +75,7 @@ impl ParallelPolicy {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum DecoratorKind {
     Inverter,
     Repeater {
@@ -119,7 +120,7 @@ pub enum DecoratorKind {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum NodeKind {
     Sequence(SequenceKind),
     Selector(SelectorKind),
@@ -132,7 +133,7 @@ pub enum NodeKind {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct ServiceBinding {
     pub name: String,
     pub key: ServiceKey,

@@ -3,6 +3,7 @@ use bevy::ecs::schedule::ScheduleLabel;
 use bevy::gizmos::prelude::GizmoConfigStore;
 use bevy::prelude::*;
 
+pub mod assets;
 pub mod blackboard;
 pub mod builder;
 pub mod components;
@@ -18,6 +19,10 @@ pub mod runtime;
 pub mod services;
 pub mod systems;
 
+pub use assets::{
+    BehaviorTreeDefinitionAsset, BehaviorTreeDefinitionAssetLoader,
+    BehaviorTreeDefinitionAssetLoaderError,
+};
 pub use blackboard::{
     BehaviorTreeBlackboard, BlackboardChange, BlackboardCondition, BlackboardKeyDefinition,
     BlackboardKeyDirection, BlackboardKeyId, BlackboardSchema, BlackboardValue,
@@ -94,6 +99,8 @@ impl Plugin for BehaviorTreePlugin {
             .init_resource::<BehaviorTreeHandlers>()
             .init_resource::<resources::ControlInbox>()
             .init_resource::<resources::RuntimeMessageBuffer>()
+            .init_asset::<BehaviorTreeDefinitionAsset>()
+            .register_asset_loader(BehaviorTreeDefinitionAssetLoader)
             .add_message::<TreeCompleted>()
             .add_message::<NodeStarted>()
             .add_message::<NodeFinished>()
@@ -108,6 +115,7 @@ impl Plugin for BehaviorTreePlugin {
             .register_type::<BehaviorTreeAgent>()
             .register_type::<BehaviorTreeBlackboard>()
             .register_type::<BehaviorTreeConfig>()
+            .register_type::<BehaviorTreeDefinitionAsset>()
             .register_type::<BehaviorTreeDebugFilter>()
             .register_type::<BehaviorTreeDebugRender>()
             .register_type::<BehaviorTreeDefinition>()

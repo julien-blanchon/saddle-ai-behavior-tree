@@ -23,6 +23,15 @@ Use `BehaviorTreePlugin::always_on(update_schedule)` when trees should stay acti
 | `emit_blackboard_messages` | `bool` | `false` | Enables `BlackboardValueChanged` emission from dirty blackboard writes |
 | `trace_capacity` | `usize` | `64` | Maximum number of entries stored in `BehaviorTreeTrace` |
 
+## Asset Loading
+
+`BehaviorTreeDefinitionAssetLoader` registers the `.bt.ron` extension and deserializes `BehaviorTreeDefinitionAsset`.
+
+| Type | Effect |
+| --- | --- |
+| `BehaviorTreeDefinitionAsset::definition` | Serializable tree definition payload |
+| `BehaviorTreeDefinitionAsset::register(...)` | Inserts the loaded definition into `BehaviorTreeLibrary` and returns the shared definition ID |
+
 ## Tick Modes
 
 | Variant | Meaning |

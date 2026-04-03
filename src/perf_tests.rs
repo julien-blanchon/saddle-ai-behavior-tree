@@ -18,7 +18,7 @@ fn simple_mass_agent_smoke_runs() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()

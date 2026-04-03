@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use bevy::ecs::message::Message;
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blackboard::{BehaviorTreeBlackboard, BlackboardKeyId, BlackboardValue};
 use crate::definition::{BehaviorTreeDefinition, NodeId};
 use crate::runtime::{NodeMemoryEntry, NodeRuntimeState};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub struct ActionKey(pub String);
 
 impl From<&str> for ActionKey {
@@ -22,7 +23,7 @@ impl From<String> for ActionKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub struct ConditionKey(pub String);
 
 impl From<&str> for ConditionKey {
@@ -37,7 +38,7 @@ impl From<String> for ConditionKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub struct ServiceKey(pub String);
 
 impl From<&str> for ServiceKey {

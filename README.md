@@ -83,6 +83,8 @@ fn setup(
 - Messages: `TreeCompleted`, `NodeStarted`, `NodeFinished`, `BranchAborted`, `TreeWakeRequested`, `TreeResetRequested`, `ActionResolution`, `BlackboardValueChanged`
 - Debug / metrics: `BehaviorTreeDebugGizmos`, `BehaviorTreeTrace`, `BehaviorTreeTraceEntry`, `BehaviorTreeMetrics`
 
+Definitions can also be loaded from RON assets through `BehaviorTreeDefinitionAsset` and `BehaviorTreeDefinitionAssetLoader`.
+
 ## Semantic Guarantees
 
 - Shared definitions, per-entity state:
@@ -202,6 +204,28 @@ Attach `BehaviorTreeDebugRender` to an agent to draw active-path rings and optio
 | `debug_overlay` | Windowed showcase with UI text plus opt-in debug gizmos | `cargo run -p saddle-ai-behavior-tree-example-debug-overlay` |
 | `hot_swap` | Runtime definition replacement with explicit tree reset | `cargo run -p saddle-ai-behavior-tree-example-hot-swap` |
 | `stress_test` | Large-agent interval-tick smoke test | `cargo run -p saddle-ai-behavior-tree-example-stress-test --release` |
+| `lab` | Rich crate-local sandbox with live `saddle-pane` tuning | `cargo run -p saddle-ai-behavior-tree-lab` |
+
+All windowed examples now include `saddle-pane` controls for cadence and scenario inputs.
+
+## Asset Loading
+
+Behavior trees can be authored as RON and registered into the shared library:
+
+```rust
+use bevy::prelude::*;
+use saddle_ai_behavior_tree::{BehaviorTreeDefinitionAsset, BehaviorTreeLibrary};
+
+fn register_loaded_tree(
+    assets: Res<Assets<BehaviorTreeDefinitionAsset>>,
+    handle: Res<Handle<BehaviorTreeDefinitionAsset>>,
+    mut library: ResMut<BehaviorTreeLibrary>,
+) {
+    if let Some(asset) = assets.get(handle.as_ref()) {
+        let _tree_id = asset.register(&mut library).unwrap();
+    }
+}
+```
 
 ## More Docs
 

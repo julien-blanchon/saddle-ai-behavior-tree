@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 bevy = { workspace = true }
 saddle-ai-behavior-tree = { workspace = true }
+saddle-ai-behavior-tree-example-common = { path = "../common" }
 
 [lints]
 workspace = true

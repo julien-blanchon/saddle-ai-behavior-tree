@@ -1,9 +1,10 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
 pub struct BlackboardKeyId(pub u16);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum BlackboardValueType {
     Bool,
     Int,
@@ -15,7 +16,7 @@ pub enum BlackboardValueType {
     Text,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum BlackboardKeyDirection {
     Input,
     Output,
@@ -23,7 +24,7 @@ pub enum BlackboardKeyDirection {
     Local,
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum BlackboardValue {
     Bool(bool),
     Int(i32),
@@ -160,7 +161,7 @@ impl From<&str> for BlackboardValue {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum BlackboardCondition {
     Exists,
     Missing,
@@ -199,7 +200,7 @@ impl BlackboardCondition {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Reflect)]
+#[derive(Clone, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct BlackboardKeyDefinition {
     pub id: BlackboardKeyId,
     pub name: String,
@@ -210,7 +211,7 @@ pub struct BlackboardKeyDefinition {
     pub description: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Reflect)]
+#[derive(Clone, Debug, Default, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct BlackboardSchema {
     pub keys: Vec<BlackboardKeyDefinition>,
 }

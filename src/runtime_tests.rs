@@ -15,7 +15,7 @@ use crate::{
 #[test]
 fn plugin_initializes_core_resources() {
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
 
     assert!(app.world().contains_resource::<BehaviorTreeLibrary>());
@@ -30,7 +30,7 @@ fn manual_tick_mode_sleeps_until_woken() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()
@@ -94,7 +94,7 @@ fn completed_tree_stays_dormant_until_woken_when_restart_disabled() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()
@@ -150,7 +150,7 @@ fn interval_tick_mode_respects_initial_phase_offset() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()
@@ -194,7 +194,7 @@ fn lifecycle_messages_stay_silent_by_default() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()
@@ -227,7 +227,7 @@ fn lifecycle_messages_are_emitted_when_enabled() {
     let definition = builder.build().unwrap();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()));
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
     let definition_id = app
         .world_mut()
