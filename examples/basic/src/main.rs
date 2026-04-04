@@ -1,37 +1,295 @@
-use saddle_ai_behavior_tree_example_common as common;
+//! Behavior tree — basic example
+//!
+//! Demonstrates the complete workflow for a minimal behavior tree:
+//!
+//! 1. Build a tree definition with `BehaviorTreeBuilder`
+//! 2. Register blackboard keys, conditions, and actions
+//! 3. Spawn an agent entity with `BehaviorTreeAgent`
+//! 4. Observe runtime status via lifecycle messages and visual feedback
+//!
+//! The tree has a single **sequence**: a "Ready" condition gate followed by an
+//! "Act" action. Toggle the `ready` flag in the pane to watch the tree succeed
+//! or stall.
 
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
-    ActionHandler, BehaviorStatus, BehaviorTreeConfig, ConditionHandler,
+    ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBlackboard,
+    BehaviorTreeBuilder, BehaviorTreeConfig, BehaviorTreeHandlers, BehaviorTreeInstance,
+    BehaviorTreeLibrary, BehaviorTreePlugin, BehaviorTreeRunState, BehaviorTreeSystems,
+    BlackboardKeyDirection, BlackboardKeyId, BlackboardValueChanged, BranchAborted,
+    ConditionHandler, NodeFinished, NodeStarted, TickMode, TreeCompleted,
 };
+use saddle_pane::prelude::*;
+
+// ---------------------------------------------------------------------------
+// Pane — live-tweak parameters and runtime monitors
+// ---------------------------------------------------------------------------
+
+#[derive(Resource, Clone, Pane)]
+#[pane(title = "Behavior Tree — Basic")]
+struct BasicPane {
+    #[pane(slider, min = 0.1, max = 2.5, step = 0.05)]
+    time_scale: f32,
+    #[pane(slider, min = 0.05, max = 2.0, step = 0.05)]
+    interval_seconds: f32,
+    pub ready: bool,
+    #[pane(monitor)]
+    status: String,
+}
+
+impl Default for BasicPane {
+    fn default() -> Self {
+        Self {
+            time_scale: 1.0,
+            interval_seconds: 0.2,
+            ready: true,
+            status: "Idle".into(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
 
 fn main() {
-    let mut app = common::headless_app();
-    common::install_exit_timer(&mut app, 0.5);
-    common::add_logging_systems(&mut app);
+    let mut app = App::new();
 
-    let (definition, ready_key) = common::basic_definition();
-    let (_entity, _) = common::register_tree(
-        &mut app,
-        definition,
-        BehaviorTreeConfig {
+    // --- Window & rendering ---
+    app.insert_resource(ClearColor(Color::srgb(0.04, 0.05, 0.08)));
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "behavior_tree / basic".into(),
+            resolution: (1280, 720).into(),
+            ..default()
+        }),
+        ..default()
+    }));
+
+    // --- Pane ---
+    app.add_plugins((
+        bevy_flair::FlairPlugin,
+        bevy_input_focus::InputDispatchPlugin,
+        bevy_ui_widgets::UiWidgetsPlugins,
+        bevy_input_focus::tab_navigation::TabNavigationPlugin,
+        PanePlugin,
+    ));
+    app.register_pane::<BasicPane>();
+
+    // --- Behavior tree plugin ---
+    app.add_plugins(BehaviorTreePlugin::always_on(Update));
+
+    // --- Build the tree definition ---
+    //
+    // Structure:
+    //   Sequence "Root"
+    //     ├── Condition "Ready"   (watches blackboard key `ready`)
+    //     └── Action "Act"        (instant — logs and succeeds)
+    //
+    let mut builder = BehaviorTreeBuilder::new("basic");
+
+    // Blackboard key: a boolean the pane can toggle
+    let ready_key: BlackboardKeyId =
+        builder.bool_key("ready", BlackboardKeyDirection::Input, false, Some(true));
+
+    let condition_node = builder.condition_with_watch_keys("Ready", "ready", [ready_key]);
+    let action_node = builder.action("Act", "act");
+    let root = builder.sequence("Root", [condition_node, action_node]);
+    builder.set_root(root);
+    let definition = builder.build().unwrap();
+
+    // --- Register definition in the library and spawn an agent ---
+    let definition_id = app
+        .world_mut()
+        .resource_mut::<BehaviorTreeLibrary>()
+        .register(definition)
+        .unwrap();
+
+    app.world_mut().spawn((
+        Name::new("BasicAgent"),
+        BehaviorTreeAgent::new(definition_id).with_config(BehaviorTreeConfig {
             emit_lifecycle_messages: true,
             ..Default::default()
-        },
-    );
-    common::register_condition(
-        &mut app,
-        "ready",
-        ConditionHandler::new(move |ctx| ctx.blackboard.get_bool(ready_key).unwrap_or(false)),
-    );
-    common::register_action(
-        &mut app,
-        "act",
-        ActionHandler::instant(|ctx| {
-            info!("entity {:?} performed the basic action", ctx.entity);
-            BehaviorStatus::Success
         }),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+    ));
+
+    // --- Register handlers ---
+    // The condition reads the blackboard `ready` key.
+    app.world_mut()
+        .resource_mut::<BehaviorTreeHandlers>()
+        .register_condition(
+            "ready",
+            ConditionHandler::new(move |ctx| ctx.blackboard.get_bool(ready_key).unwrap_or(false)),
+        );
+
+    // The action simply logs and succeeds instantly.
+    app.world_mut()
+        .resource_mut::<BehaviorTreeHandlers>()
+        .register_action(
+            "act",
+            ActionHandler::instant(|ctx| {
+                info!("Entity {:?} performed the basic action!", ctx.entity);
+                BehaviorStatus::Success
+            }),
+        );
+
+    // --- Visual & runtime systems ---
+    app.add_systems(Startup, setup_scene);
+    app.add_systems(
+        Update,
+        (
+            sync_pane_to_runtime,
+            update_pane_monitors,
+            decorate_agents,
+            update_agent_visuals,
+        ),
+    );
+    app.add_systems(
+        Update,
+        (log_started, log_finished, log_completed, log_aborts, log_blackboard_changes)
+            .after(BehaviorTreeSystems::Apply),
     );
 
     app.run();
+}
+
+// ---------------------------------------------------------------------------
+// Scene — camera + colored lanes for context
+// ---------------------------------------------------------------------------
+
+fn setup_scene(mut commands: Commands) {
+    commands.spawn((Name::new("Camera"), Camera2d));
+    commands.spawn((
+        Name::new("Backdrop"),
+        Sprite::from_color(Color::srgb(0.07, 0.09, 0.13), Vec2::new(1600.0, 900.0)),
+        Transform::from_xyz(0.0, 0.0, -30.0),
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// Auto-decorate agent entities with a sprite if they don't have one
+// ---------------------------------------------------------------------------
+
+fn decorate_agents(
+    mut commands: Commands,
+    agents: Query<(Entity, Option<&Sprite>), Added<BehaviorTreeAgent>>,
+) {
+    for (entity, sprite) in &agents {
+        if sprite.is_some() {
+            continue;
+        }
+        commands.entity(entity).insert(Sprite::from_color(
+            Color::srgb(0.24, 0.63, 0.92),
+            Vec2::new(64.0, 64.0),
+        ));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Pane → runtime sync (toggle ready flag, adjust tick speed)
+// ---------------------------------------------------------------------------
+
+fn sync_pane_to_runtime(
+    pane: Res<BasicPane>,
+    mut virtual_time: ResMut<Time<Virtual>>,
+    mut agents: Query<&mut BehaviorTreeAgent>,
+    mut blackboards: Query<&mut BehaviorTreeBlackboard>,
+) {
+    if !pane.is_changed() {
+        return;
+    }
+
+    virtual_time.set_relative_speed(pane.time_scale.max(0.1));
+
+    for mut agent in &mut agents {
+        agent.config.tick_mode = TickMode::Interval {
+            seconds: pane.interval_seconds.max(0.01),
+            phase_offset: 0.0,
+        };
+    }
+
+    for mut blackboard in &mut blackboards {
+        if let Some(key) = blackboard.schema.find_key("ready") {
+            let _ = blackboard.set(key, pane.ready);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Runtime → pane monitors
+// ---------------------------------------------------------------------------
+
+fn update_pane_monitors(
+    instances: Query<&BehaviorTreeInstance>,
+    mut pane: ResMut<BasicPane>,
+) {
+    for instance in &instances {
+        pane.status = match &instance.status {
+            BehaviorTreeRunState::Running => "Running".into(),
+            BehaviorTreeRunState::Success => "Success".into(),
+            BehaviorTreeRunState::Failure => "Failure".into(),
+            _ => "Idle".into(),
+        };
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Color the agent sprite based on tree status
+// ---------------------------------------------------------------------------
+
+fn update_agent_visuals(
+    instances: Query<(Entity, &BehaviorTreeInstance, Option<&BehaviorTreeBlackboard>)>,
+    mut sprites: Query<&mut Sprite, With<BehaviorTreeAgent>>,
+) {
+    for (entity, instance, blackboard) in &instances {
+        let Ok(mut sprite) = sprites.get_mut(entity) else {
+            continue;
+        };
+        let alerted = blackboard
+            .and_then(|b| b.schema.find_key("alert").and_then(|key| b.get_bool(key)))
+            .unwrap_or(false);
+
+        sprite.color = match (instance.status.clone(), alerted) {
+            (_, true) => Color::srgb(0.93, 0.38, 0.22),
+            (BehaviorTreeRunState::Running, false) => Color::srgb(0.24, 0.63, 0.92),
+            (BehaviorTreeRunState::Success, false) => Color::srgb(0.24, 0.84, 0.44),
+            (BehaviorTreeRunState::Failure, false) => Color::srgb(0.85, 0.24, 0.28),
+            _ => Color::srgb(0.72, 0.76, 0.84),
+        };
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle message logging
+// ---------------------------------------------------------------------------
+
+fn log_started(mut reader: MessageReader<NodeStarted>) {
+    for msg in reader.read() {
+        info!("start: {}", msg.path);
+    }
+}
+
+fn log_finished(mut reader: MessageReader<NodeFinished>) {
+    for msg in reader.read() {
+        info!("finish: {} -> {:?}", msg.path, msg.status);
+    }
+}
+
+fn log_completed(mut reader: MessageReader<TreeCompleted>) {
+    for msg in reader.read() {
+        info!("tree completed: {:?} on {:?}", msg.status, msg.entity);
+    }
+}
+
+fn log_aborts(mut reader: MessageReader<BranchAborted>) {
+    for msg in reader.read() {
+        info!("abort: {} ({})", msg.path, msg.reason);
+    }
+}
+
+fn log_blackboard_changes(mut reader: MessageReader<BlackboardValueChanged>) {
+    for msg in reader.read() {
+        info!("blackboard: {} -> {:?}", msg.name, msg.new_value);
+    }
 }
