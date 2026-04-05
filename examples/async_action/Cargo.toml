@@ -8,6 +8,10 @@ publish = false
 bevy = { workspace = true }
 saddle-ai-behavior-tree = { workspace = true }
 saddle-ai-behavior-tree-example-common = { path = "../common" }
+bevy_flair = { workspace = true }
+bevy_input_focus = { workspace = true }
+bevy_ui_widgets = { workspace = true }
+saddle-pane = { workspace = true }
 
 [lints]
 workspace = true

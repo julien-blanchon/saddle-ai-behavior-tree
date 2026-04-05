@@ -173,14 +173,29 @@ Reactive semantics are covered by unit tests and by the `reactive_abort` example
 
 Every instance exposes:
 
-- `active_path`
-- `status`
-- `last_running_leaf`
-- `last_abort_reason`
-- `wake_reason`
-- per-node runtime state
-- per-node and per-tree counters
-- a bounded `BehaviorTreeTrace`
+- `active_path` — the chain of `NodeId`s from root to the currently executing leaf
+- `status` — `Running`, `Success`, `Failure`, `Idle`, or `Deactivated`
+- `last_running_leaf` / `last_abort_reason` / `wake_reason` — diagnostic strings
+- per-node `NodeRuntimeState` — status, execution count, timestamps, cooldowns
+- per-tree `BehaviorTreeMetrics` — tick count, abort count, last tick microseconds
+- a bounded `BehaviorTreeTrace` — ring buffer of trace entries (start, finish, abort, service, wake, blackboard change)
+
+### Tree Overlay Visualization
+
+All examples include an on-screen **tree overlay** that shows:
+
+- The full tree structure as an indented text view with node type labels (`[SEQ]`, `[SEL]`, `[ACT]`, `[CND]`, `[R-SEL]`, `[DEC]`, etc.)
+- Active path highlighting (`>` marker on nodes in the current execution path)
+- Node status indicators (`~` Running, `+` Success, `x` Failure, `.` Idle)
+- Execution counts per node
+- Active path breadcrumb (e.g., `Root > ChaseBranch > Chase`)
+- Blackboard key-value display
+- Recent trace entries
+- Metrics footer (ticks, timing, aborts)
+
+The overlay system is provided by the example `common` crate: `spawn_tree_overlay()`, `update_tree_overlay`, and `format_tree_overlay()`. Games can use `format_tree_overlay()` to build the same visualization for their own debug UIs.
+
+### Gizmo Rendering
 
 Line-based gizmo rendering is opt-in:
 
@@ -196,17 +211,17 @@ Attach `BehaviorTreeDebugRender` to an agent to draw active-path rings and optio
 
 | Example | Description | Run |
 | --- | --- | --- |
-| `basic` | Minimal sequence with typed blackboard input and a condition/action pair | `cargo run -p saddle-ai-behavior-tree-example-basic` |
-| `reactive_abort` | Higher-priority branch interrupts a lower-priority running patrol | `cargo run -p saddle-ai-behavior-tree-example-reactive-abort` |
-| `subtree_scope` | Reusable subtree with explicit input/output remapping | `cargo run -p saddle-ai-behavior-tree-example-subtree-scope` |
-| `services` | Interval-driven service updates and logging | `cargo run -p saddle-ai-behavior-tree-example-services` |
-| `async_action` | Long-running action completed later through `ActionResolution` | `cargo run -p saddle-ai-behavior-tree-example-async-action` |
-| `debug_overlay` | Windowed showcase with UI text plus opt-in debug gizmos | `cargo run -p saddle-ai-behavior-tree-example-debug-overlay` |
-| `hot_swap` | Runtime definition replacement with explicit tree reset | `cargo run -p saddle-ai-behavior-tree-example-hot-swap` |
-| `stress_test` | Large-agent interval-tick smoke test | `cargo run -p saddle-ai-behavior-tree-example-stress-test --release` |
-| `lab` | Rich crate-local sandbox with live `saddle-pane` tuning | `cargo run -p saddle-ai-behavior-tree-lab` |
+| `basic` | Minimal sequence with condition/action pair. Toggle `ready` to gate execution. | `cargo run -p saddle-ai-behavior-tree-example-basic` |
+| `reactive_abort` | Higher-priority branch interrupts a lower-priority patrol. Toggle `target_visible` or use auto-flip. | `cargo run -p saddle-ai-behavior-tree-example-reactive-abort` |
+| `subtree_scope` | Reusable subtree with explicit input/output key remapping. | `cargo run -p saddle-ai-behavior-tree-example-subtree-scope` |
+| `services` | Interval-driven service updates with a pulse counter. | `cargo run -p saddle-ai-behavior-tree-example-services` |
+| `async_action` | Long-running action with ticket-based completion. Press SPACE to resolve. | `cargo run -p saddle-ai-behavior-tree-example-async-action` |
+| `debug_overlay` | Full debug visualization showcase: tree overlay, gizmos, blackboard, trace, metrics. | `cargo run -p saddle-ai-behavior-tree-example-debug-overlay` |
+| `hot_swap` | Runtime definition replacement. Press SPACE to swap between patrol and attack trees. | `cargo run -p saddle-ai-behavior-tree-example-hot-swap` |
+| `stress_test` | 2048 agents with interval ticks. Real-time FPS and tick metrics display. | `cargo run -p saddle-ai-behavior-tree-example-stress-test --release` |
+| `lab` | Rich 3D integration with chase/patrol AI, gizmo rendering, and full pane tuning. | `cargo run -p saddle-ai-behavior-tree-lab` |
 
-All windowed examples now include `saddle-pane` controls for cadence and scenario inputs.
+All examples run indefinitely (no auto-stop), include on-screen instructions, a tree overlay showing the live behavior tree state, and `saddle-pane` controls for live parameter tuning.
 
 ## Asset Loading
 

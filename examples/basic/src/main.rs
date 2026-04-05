@@ -5,7 +5,7 @@
 //! 1. Build a tree definition with `BehaviorTreeBuilder`
 //! 2. Register blackboard keys, conditions, and actions
 //! 3. Spawn an agent entity with `BehaviorTreeAgent`
-//! 4. Observe runtime status via lifecycle messages and visual feedback
+//! 4. Observe runtime status via the tree overlay and visual feedback
 //!
 //! The tree has a single **sequence**: a "Ready" condition gate followed by an
 //! "Act" action. Toggle the `ready` flag in the pane to watch the tree succeed
@@ -13,12 +13,12 @@
 
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
-    ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBlackboard,
-    BehaviorTreeBuilder, BehaviorTreeConfig, BehaviorTreeHandlers, BehaviorTreeInstance,
-    BehaviorTreeLibrary, BehaviorTreePlugin, BehaviorTreeRunState, BehaviorTreeSystems,
-    BlackboardKeyDirection, BlackboardKeyId, BlackboardValueChanged, BranchAborted,
-    ConditionHandler, NodeFinished, NodeStarted, TickMode, TreeCompleted,
+    ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBlackboard, BehaviorTreeBuilder,
+    BehaviorTreeConfig, BehaviorTreeHandlers, BehaviorTreeInstance, BehaviorTreeLibrary,
+    BehaviorTreePlugin, BehaviorTreeRunState, BehaviorTreeSystems, BlackboardKeyDirection,
+    BlackboardKeyId, ConditionHandler, TickMode,
 };
+use saddle_ai_behavior_tree_example_common as common;
 use saddle_pane::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -83,8 +83,8 @@ fn main() {
     //
     // Structure:
     //   Sequence "Root"
-    //     ├── Condition "Ready"   (watches blackboard key `ready`)
-    //     └── Action "Act"        (instant — logs and succeeds)
+    //     +-- Condition "Ready"   (watches blackboard key `ready`)
+    //     +-- Action "Act"        (instant -- logs and succeeds)
     //
     let mut builder = BehaviorTreeBuilder::new("basic");
 
@@ -109,6 +109,8 @@ fn main() {
         Name::new("BasicAgent"),
         BehaviorTreeAgent::new(definition_id).with_config(BehaviorTreeConfig {
             emit_lifecycle_messages: true,
+            restart_on_completion: true,
+            trace_capacity: 64,
             ..Default::default()
         }),
         Transform::from_xyz(0.0, 0.0, 0.0),
@@ -143,19 +145,15 @@ fn main() {
             update_pane_monitors,
             decorate_agents,
             update_agent_visuals,
+            common::update_tree_overlay.after(BehaviorTreeSystems::Cleanup),
         ),
-    );
-    app.add_systems(
-        Update,
-        (log_started, log_finished, log_completed, log_aborts, log_blackboard_changes)
-            .after(BehaviorTreeSystems::Apply),
     );
 
     app.run();
 }
 
 // ---------------------------------------------------------------------------
-// Scene — camera + colored lanes for context
+// Scene — camera + sprite + tree overlay
 // ---------------------------------------------------------------------------
 
 fn setup_scene(mut commands: Commands) {
@@ -165,6 +163,15 @@ fn setup_scene(mut commands: Commands) {
         Sprite::from_color(Color::srgb(0.07, 0.09, 0.13), Vec2::new(1600.0, 900.0)),
         Transform::from_xyz(0.0, 0.0, -30.0),
     ));
+
+    common::spawn_tree_overlay(&mut commands);
+    common::spawn_instructions(
+        &mut commands,
+        "Toggle 'ready' in the pane to gate the sequence.\n\
+         When ready=true the tree runs Root > Ready > Act and succeeds.\n\
+         When ready=false the condition fails and the sequence fails.\n\
+         Adjust time_scale and interval_seconds to control tick rate.",
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -187,7 +194,7 @@ fn decorate_agents(
 }
 
 // ---------------------------------------------------------------------------
-// Pane → runtime sync (toggle ready flag, adjust tick speed)
+// Pane -> runtime sync (toggle ready flag, adjust tick speed)
 // ---------------------------------------------------------------------------
 
 fn sync_pane_to_runtime(
@@ -217,13 +224,10 @@ fn sync_pane_to_runtime(
 }
 
 // ---------------------------------------------------------------------------
-// Runtime → pane monitors
+// Runtime -> pane monitors
 // ---------------------------------------------------------------------------
 
-fn update_pane_monitors(
-    instances: Query<&BehaviorTreeInstance>,
-    mut pane: ResMut<BasicPane>,
-) {
+fn update_pane_monitors(instances: Query<&BehaviorTreeInstance>, mut pane: ResMut<BasicPane>) {
     for instance in &instances {
         pane.status = match &instance.status {
             BehaviorTreeRunState::Running => "Running".into(),
@@ -239,57 +243,18 @@ fn update_pane_monitors(
 // ---------------------------------------------------------------------------
 
 fn update_agent_visuals(
-    instances: Query<(Entity, &BehaviorTreeInstance, Option<&BehaviorTreeBlackboard>)>,
+    instances: Query<(Entity, &BehaviorTreeInstance)>,
     mut sprites: Query<&mut Sprite, With<BehaviorTreeAgent>>,
 ) {
-    for (entity, instance, blackboard) in &instances {
+    for (entity, instance) in &instances {
         let Ok(mut sprite) = sprites.get_mut(entity) else {
             continue;
         };
-        let alerted = blackboard
-            .and_then(|b| b.schema.find_key("alert").and_then(|key| b.get_bool(key)))
-            .unwrap_or(false);
-
-        sprite.color = match (instance.status.clone(), alerted) {
-            (_, true) => Color::srgb(0.93, 0.38, 0.22),
-            (BehaviorTreeRunState::Running, false) => Color::srgb(0.24, 0.63, 0.92),
-            (BehaviorTreeRunState::Success, false) => Color::srgb(0.24, 0.84, 0.44),
-            (BehaviorTreeRunState::Failure, false) => Color::srgb(0.85, 0.24, 0.28),
+        sprite.color = match &instance.status {
+            BehaviorTreeRunState::Running => Color::srgb(0.24, 0.63, 0.92),
+            BehaviorTreeRunState::Success => Color::srgb(0.24, 0.84, 0.44),
+            BehaviorTreeRunState::Failure => Color::srgb(0.85, 0.24, 0.28),
             _ => Color::srgb(0.72, 0.76, 0.84),
         };
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Lifecycle message logging
-// ---------------------------------------------------------------------------
-
-fn log_started(mut reader: MessageReader<NodeStarted>) {
-    for msg in reader.read() {
-        info!("start: {}", msg.path);
-    }
-}
-
-fn log_finished(mut reader: MessageReader<NodeFinished>) {
-    for msg in reader.read() {
-        info!("finish: {} -> {:?}", msg.path, msg.status);
-    }
-}
-
-fn log_completed(mut reader: MessageReader<TreeCompleted>) {
-    for msg in reader.read() {
-        info!("tree completed: {:?} on {:?}", msg.status, msg.entity);
-    }
-}
-
-fn log_aborts(mut reader: MessageReader<BranchAborted>) {
-    for msg in reader.read() {
-        info!("abort: {} ({})", msg.path, msg.reason);
-    }
-}
-
-fn log_blackboard_changes(mut reader: MessageReader<BlackboardValueChanged>) {
-    for msg in reader.read() {
-        info!("blackboard: {} -> {:?}", msg.name, msg.new_value);
     }
 }

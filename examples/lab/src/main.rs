@@ -1,11 +1,30 @@
+//! Behavior tree — lab (E2E integration)
+//!
+//! Rich integration scenario demonstrating:
+//!
+//! - 3D scene with agent (capsule) chasing/patrolling around a target (cube)
+//! - Reactive selector with abort: chase vs patrol behavior
+//! - Service-driven sensing (distance + visibility checks)
+//! - Gizmo debug rendering (ring, active path, target line)
+//! - Full tree overlay with blackboard, trace, and metrics
+//! - Pane controls for live parameter tuning
+//!
+//! The agent patrols in a circle. When the target moves close enough and
+//! is within the visibility gate, the agent chases it. When the target
+//! moves away, the agent resumes patrolling.
+
+use std::fmt::Write;
+
 use bevy::gizmos::prelude::AppGizmoBuilder;
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
-    BehaviorTreeDebugGizmos, BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeLibrary,
-    BehaviorTreePlugin, BehaviorTreeSystems, BlackboardKeyDirection, BlackboardKeyId,
-    BranchAborted, ConditionHandler, ServiceBinding, ServiceHandler, TreeCompleted,
+    BehaviorTreeDebugGizmos, BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeInstance,
+    BehaviorTreeLibrary, BehaviorTreePlugin, BehaviorTreeRunState, BehaviorTreeSystems,
+    BlackboardKeyDirection, BranchAborted, ConditionHandler, ServiceBinding,
+    ServiceHandler, TreeCompleted,
 };
+use saddle_ai_behavior_tree_example_common as common;
 use saddle_pane::prelude::*;
 
 #[derive(Component)]
@@ -15,13 +34,10 @@ struct LabAgent;
 struct LabTarget;
 
 #[derive(Component)]
-struct OverlayText;
+struct LabOverlay;
 
-#[derive(Resource, Clone, Copy)]
-struct LabKeys {
-    target_visible: BlackboardKeyId,
-    distance_to_target: BlackboardKeyId,
-}
+#[derive(Component)]
+struct LabInstructions;
 
 #[derive(Resource, Default)]
 struct LabStats {
@@ -44,6 +60,10 @@ struct BehaviorTreeLabPane {
     chase_speed: f32,
     #[pane(slider, min = 1.0, max = 6.0, step = 0.1)]
     patrol_radius: f32,
+    #[pane(monitor)]
+    status: String,
+    #[pane(monitor)]
+    abort_count: String,
 }
 
 impl Default for BehaviorTreeLabPane {
@@ -54,6 +74,8 @@ impl Default for BehaviorTreeLabPane {
             visibility_gate_x: -1.5,
             chase_speed: 2.75,
             patrol_radius: 2.6,
+            status: "Idle".into(),
+            abort_count: "0".into(),
         }
     }
 }
@@ -79,7 +101,8 @@ fn main() {
         (
             sync_pane_to_runtime,
             animate_target,
-            sync_overlay.after(BehaviorTreeSystems::Cleanup),
+            update_overlay.after(BehaviorTreeSystems::Cleanup),
+            update_monitors.after(BehaviorTreeSystems::Cleanup),
             record_runtime_messages.after(BehaviorTreeSystems::Apply),
         ),
     );
@@ -87,10 +110,7 @@ fn main() {
     app.run();
 }
 
-fn sync_pane_to_runtime(
-    pane: Res<BehaviorTreeLabPane>,
-    mut virtual_time: ResMut<Time<Virtual>>,
-) {
+fn sync_pane_to_runtime(pane: Res<BehaviorTreeLabPane>, mut virtual_time: ResMut<Time<Virtual>>) {
     if pane.is_changed() {
         virtual_time.set_relative_speed(pane.time_scale.max(0.1));
     }
@@ -178,11 +198,6 @@ fn setup(
 
     let definition = builder.build().unwrap();
     let definition_id = library.register(definition).unwrap();
-    commands.insert_resource(LabKeys {
-        target_visible,
-        distance_to_target,
-    });
-
     handlers.register_condition(
         "target_visible",
         ConditionHandler::new(move |ctx| ctx.blackboard.get_bool(target_visible).unwrap_or(false)),
@@ -306,14 +321,45 @@ fn setup(
         Transform::from_xyz(-2.6, 0.55, 0.0),
     ));
 
+    // Tree overlay (top-left)
     commands.spawn((
         Name::new("Lab Overlay"),
-        OverlayText,
+        LabOverlay,
         Text::new(""),
+        TextFont {
+            font_size: 12.0,
+            ..default()
+        },
+        TextColor(Color::srgba(0.85, 0.9, 0.95, 0.95)),
         Node {
             position_type: PositionType::Absolute,
             top: px(16.0),
             left: px(16.0),
+            max_width: px(520.0),
+            ..default()
+        },
+    ));
+
+    // Instructions (bottom-left)
+    commands.spawn((
+        Name::new("Lab Instructions"),
+        LabInstructions,
+        Text::new(
+            "3D Lab: agent patrols until the target is visible, then chases.\n\
+             Adjust visibility_radius and visibility_gate_x to control sensing.\n\
+             The gizmo ring, vertical bars, and target line show debug info.\n\
+             Tune chase_speed and patrol_radius for different behaviors.",
+        ),
+        TextFont {
+            font_size: 12.0,
+            ..default()
+        },
+        TextColor(Color::srgba(0.6, 0.65, 0.7, 0.85)),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: px(16.0),
+            left: px(16.0),
+            max_width: px(600.0),
             ..default()
         },
     ));
@@ -331,9 +377,8 @@ fn animate_target(time: Res<Time>, mut targets: Query<&mut Transform, With<LabTa
     );
 }
 
-fn sync_overlay(
+fn update_overlay(
     stats: Res<LabStats>,
-    keys: Res<LabKeys>,
     library: Res<BehaviorTreeLibrary>,
     agents: Query<
         (
@@ -343,7 +388,7 @@ fn sync_overlay(
         ),
         With<LabAgent>,
     >,
-    mut overlays: Query<&mut Text, With<OverlayText>>,
+    mut overlays: Query<&mut Text, With<LabOverlay>>,
 ) {
     let Ok((agent, instance, blackboard)) = agents.single() else {
         return;
@@ -351,34 +396,38 @@ fn sync_overlay(
     let Ok(mut text) = overlays.single_mut() else {
         return;
     };
-    let active_nodes = library
-        .get(agent.definition)
-        .map(|definition| {
-            instance
-                .active_path
-                .iter()
-                .filter_map(|node| {
-                    definition
-                        .node(*node)
-                        .map(|definition| definition.name.clone())
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let Some(definition) = library.get(agent.definition) else {
+        return;
+    };
 
-    text.0 = format!(
-        "active path: {:?}\nstatus: {:?}\nvisible: {:?}\ndistance: {:?}\nservices: {}\naborts: {}\ncompletions: {} ({:?})",
-        active_nodes,
-        instance.status,
-        blackboard.get_bool(keys.target_visible),
-        blackboard
-            .get_float(keys.distance_to_target)
-            .map(|value| format!("{value:.2}")),
-        stats.service_ticks,
-        stats.aborts,
-        stats.completions,
-        stats.last_completed_status,
+    // Use the common tree overlay formatter
+    text.0 = common::format_tree_overlay(definition, instance, Some(blackboard));
+
+    // Append lab-specific stats
+    let mut extra = String::new();
+    let _ = writeln!(extra);
+    let _ = write!(
+        extra,
+        "Services: {} | Aborts: {} | Completions: {} ({:?})",
+        stats.service_ticks, stats.aborts, stats.completions, stats.last_completed_status
     );
+    text.0.push_str(&extra);
+}
+
+fn update_monitors(
+    stats: Res<LabStats>,
+    agents: Query<&BehaviorTreeInstance, With<LabAgent>>,
+    mut pane: ResMut<BehaviorTreeLabPane>,
+) {
+    if let Ok(instance) = agents.single() {
+        pane.status = match &instance.status {
+            BehaviorTreeRunState::Running => "Running".into(),
+            BehaviorTreeRunState::Success => "Success".into(),
+            BehaviorTreeRunState::Failure => "Failure".into(),
+            _ => "Idle".into(),
+        };
+        pane.abort_count = format!("{}", stats.aborts);
+    }
 }
 
 fn record_runtime_messages(
