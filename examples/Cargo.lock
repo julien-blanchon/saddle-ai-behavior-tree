@@ -4972,7 +4972,18 @@ dependencies = [
  "bevy_ui_widgets",
  "saddle-ai-behavior-tree",
  "saddle-ai-behavior-tree-example-common",
+ "saddle-bevy-e2e",
  "saddle-pane",
+]
+
+[[package]]
+name = "saddle-bevy-e2e"
+version = "0.1.0"
+source = "git+https://github.com/julien-blanchon/saddle-bevy-e2e#18b89f5851c6b2edd7067f737b89a3f332149ea4"
+dependencies = [
+ "bevy",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

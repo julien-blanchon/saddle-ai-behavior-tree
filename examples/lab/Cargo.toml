@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[features]
+default = []
+e2e = ["dep:saddle-bevy-e2e"]
+
 [dependencies]
 bevy = { workspace = true }
 bevy_flair = { workspace = true }
@@ -12,6 +16,7 @@ bevy_ui_widgets = { workspace = true }
 saddle-ai-behavior-tree = { workspace = true }
 saddle-ai-behavior-tree-example-common = { path = "../common" }
 saddle-pane = { workspace = true }
+saddle-bevy-e2e = { git = "https://github.com/julien-blanchon/saddle-bevy-e2e", features = ["json"], optional = true }
 
 [lints]
 workspace = true

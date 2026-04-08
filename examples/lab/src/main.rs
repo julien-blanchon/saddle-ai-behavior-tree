@@ -13,6 +13,11 @@
 //! is within the visibility gate, the agent chases it. When the target
 //! moves away, the agent resumes patrolling.
 
+#[cfg(feature = "e2e")]
+mod e2e;
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use std::fmt::Write;
 
 use bevy::gizmos::prelude::AppGizmoBuilder;
@@ -28,7 +33,7 @@ use saddle_ai_behavior_tree_example_common as common;
 use saddle_pane::prelude::*;
 
 #[derive(Component)]
-struct LabAgent;
+pub struct LabAgent;
 
 #[derive(Component)]
 struct LabTarget;
@@ -40,30 +45,30 @@ struct LabOverlay;
 struct LabInstructions;
 
 #[derive(Resource, Default)]
-struct LabStats {
-    service_ticks: u32,
-    aborts: u32,
-    completions: u32,
-    last_completed_status: Option<BehaviorStatus>,
+pub struct LabStats {
+    pub service_ticks: u32,
+    pub aborts: u32,
+    pub completions: u32,
+    pub last_completed_status: Option<BehaviorStatus>,
 }
 
 #[derive(Resource, Clone, Pane)]
 #[pane(title = "Behavior Tree Lab")]
-struct BehaviorTreeLabPane {
+pub struct BehaviorTreeLabPane {
     #[pane(slider, min = 0.1, max = 2.5, step = 0.05)]
-    time_scale: f32,
+    pub time_scale: f32,
     #[pane(slider, min = 1.0, max = 12.0, step = 0.1)]
-    visibility_radius: f32,
+    pub visibility_radius: f32,
     #[pane(slider, min = -6.0, max = 4.0, step = 0.1)]
-    visibility_gate_x: f32,
+    pub visibility_gate_x: f32,
     #[pane(slider, min = 0.5, max = 6.0, step = 0.1)]
-    chase_speed: f32,
+    pub chase_speed: f32,
     #[pane(slider, min = 1.0, max = 6.0, step = 0.1)]
-    patrol_radius: f32,
+    pub patrol_radius: f32,
     #[pane(monitor)]
-    status: String,
+    pub status: String,
     #[pane(monitor)]
-    abort_count: String,
+    pub abort_count: String,
 }
 
 impl Default for BehaviorTreeLabPane {
@@ -92,6 +97,8 @@ fn main() {
     ));
     app.init_gizmo_group::<BehaviorTreeDebugGizmos>();
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(e2e::BehaviorTreeLabE2EPlugin);
     app.init_resource::<LabStats>();
     app.init_resource::<BehaviorTreeLabPane>();
     app.register_pane::<BehaviorTreeLabPane>();
