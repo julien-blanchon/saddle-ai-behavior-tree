@@ -9,6 +9,11 @@
 //! This pattern is useful for actions that depend on external systems
 //! (network requests, AI planning, animations) that complete asynchronously.
 
+#[cfg(feature = "e2e")]
+mod e2e;
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, ActionResolution, ActionTicket, BehaviorStatus, BehaviorTreeAgent,
@@ -75,6 +80,8 @@ fn main() {
     ));
     app.register_pane::<AsyncPane>();
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(e2e::AsyncActionE2EPlugin);
     app.init_resource::<PendingTicket>();
 
     let mut builder = BehaviorTreeBuilder::new("async");
@@ -130,11 +137,14 @@ fn main() {
     });
 
     app.add_systems(Startup, setup_scene);
+    #[cfg(feature = "e2e")]
+    app.add_systems(Update, resolve_on_space.after(saddle_bevy_e2e::E2ESet));
+    #[cfg(not(feature = "e2e"))]
+    app.add_systems(Update, resolve_on_space);
     app.add_systems(
         Update,
         (
             sync_pane,
-            resolve_on_space,
             update_monitors,
             update_sprite,
             common::update_tree_overlay.after(BehaviorTreeSystems::Cleanup),

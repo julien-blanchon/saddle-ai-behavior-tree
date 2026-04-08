@@ -4856,6 +4856,7 @@ dependencies = [
  "bevy_ui_widgets",
  "saddle-ai-behavior-tree",
  "saddle-ai-behavior-tree-example-common",
+ "saddle-bevy-e2e",
  "saddle-pane",
 ]
 
@@ -4907,6 +4908,7 @@ dependencies = [
  "bevy_ui_widgets",
  "saddle-ai-behavior-tree",
  "saddle-ai-behavior-tree-example-common",
+ "saddle-bevy-e2e",
  "saddle-pane",
 ]
 
@@ -4946,6 +4948,7 @@ dependencies = [
  "bevy_ui_widgets",
  "saddle-ai-behavior-tree",
  "saddle-ai-behavior-tree-example-common",
+ "saddle-bevy-e2e",
  "saddle-pane",
 ]
 

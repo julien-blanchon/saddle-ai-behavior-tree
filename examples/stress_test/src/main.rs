@@ -7,6 +7,11 @@
 //! Use this to benchmark the behavior tree runtime. For best results,
 //! build with `--release`.
 
+#[cfg(feature = "e2e")]
+mod e2e;
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use std::fmt::Write;
 
 use bevy::prelude::*;
@@ -67,6 +72,8 @@ fn main() {
     ));
     app.register_pane::<StressPane>();
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(e2e::StressTestE2EPlugin);
 
     let (definition, _) = common::basic_definition();
     let definition_id = app

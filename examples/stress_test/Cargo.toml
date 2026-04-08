@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[features]
+e2e = ["dep:saddle-bevy-e2e"]
+
 [dependencies]
 bevy = { workspace = true }
 saddle-ai-behavior-tree = { workspace = true }
@@ -12,6 +15,7 @@ bevy_flair = { workspace = true }
 bevy_input_focus = { workspace = true }
 bevy_ui_widgets = { workspace = true }
 saddle-pane = { workspace = true }
+saddle-bevy-e2e = { workspace = true, optional = true }
 
 [lints]
 workspace = true

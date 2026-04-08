@@ -226,18 +226,17 @@ fn bt_service_interval() -> Scenario {
         // Capture the service count at the start of the measurement window
         .then(Action::WaitUntil {
             label: "service ticked at least once to establish baseline".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().service_ticks >= 1
-            }),
+            condition: Box::new(|world| world.resource::<LabStats>().service_ticks >= 1),
             max_frames: 60,
         })
         .then(Action::Screenshot("service_interval_start".into()))
         .then(Action::WaitFrames(1))
         // Wait ~3s — at 0.15s interval that is ~20 ticks minimum
         .then(Action::WaitFrames(180))
-        .then(assertions::custom("service ticked ≥ 10 times in 3s window", |world| {
-            world.resource::<LabStats>().service_ticks >= 10
-        }))
+        .then(assertions::custom(
+            "service ticked ≥ 10 times in 3s window",
+            |world| world.resource::<LabStats>().service_ticks >= 10,
+        ))
         .then(Action::Screenshot("service_interval_end".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("bt_service_interval"))
@@ -285,9 +284,10 @@ fn bt_multi_abort_cycle() -> Scenario {
             condition: Box::new(|world| world.resource::<LabStats>().aborts >= 3),
             max_frames: 120,
         })
-        .then(assertions::custom("3 hide/reveal cycles produced ≥ 3 aborts", |world| {
-            world.resource::<LabStats>().aborts >= 3
-        }))
+        .then(assertions::custom(
+            "3 hide/reveal cycles produced ≥ 3 aborts",
+            |world| world.resource::<LabStats>().aborts >= 3,
+        ))
         .then(Action::Screenshot("multi_abort_cycle".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("bt_multi_abort_cycle"))
@@ -320,14 +320,16 @@ fn bt_completion_restart() -> Scenario {
             condition: Box::new(|world| world.resource::<LabStats>().completions >= 2),
             max_frames: 360,
         })
-        .then(assertions::custom("two completions confirm restart loop", |world| {
-            world.resource::<LabStats>().completions >= 2
-        }))
-        // Tree should still be running (not stuck in completed state)
-        .then(assertions::component_satisfies::<saddle_ai_behavior_tree::BehaviorTreeInstance>(
-            "tree is running after restart",
-            |instance| matches!(instance.status, BehaviorTreeRunState::Running),
+        .then(assertions::custom(
+            "two completions confirm restart loop",
+            |world| world.resource::<LabStats>().completions >= 2,
         ))
+        // Tree should still be running (not stuck in completed state)
+        .then(assertions::component_satisfies::<
+            saddle_ai_behavior_tree::BehaviorTreeInstance,
+        >("tree is running after restart", |instance| {
+            matches!(instance.status, BehaviorTreeRunState::Running)
+        }))
         .then(Action::Screenshot("restart_after_second".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("bt_completion_restart"))

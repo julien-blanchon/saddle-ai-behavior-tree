@@ -7,6 +7,11 @@
 //! the new definition. This is useful for AI state transitions where the
 //! entire behavior strategy changes (e.g., switching from exploration to combat).
 
+#[cfg(feature = "e2e")]
+mod e2e;
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use bevy::prelude::*;
 use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
@@ -73,6 +78,8 @@ fn main() {
     ));
     app.register_pane::<SwapPane>();
     app.add_plugins(BehaviorTreePlugin::always_on(Update));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(e2e::HotSwapE2EPlugin);
 
     // Build two different tree definitions
     let mut patrol_builder = BehaviorTreeBuilder::new("patrol");
@@ -148,11 +155,14 @@ fn main() {
     });
 
     app.add_systems(Startup, setup_scene);
+    #[cfg(feature = "e2e")]
+    app.add_systems(Update, swap_on_space.after(saddle_bevy_e2e::E2ESet));
+    #[cfg(not(feature = "e2e"))]
+    app.add_systems(Update, swap_on_space);
     app.add_systems(
         Update,
         (
             sync_pane,
-            swap_on_space,
             update_monitors,
             update_sprite,
             common::update_tree_overlay.after(BehaviorTreeSystems::Cleanup),

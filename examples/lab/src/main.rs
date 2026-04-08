@@ -26,8 +26,8 @@ use saddle_ai_behavior_tree::{
     ActionHandler, BehaviorStatus, BehaviorTreeAgent, BehaviorTreeBuilder, BehaviorTreeConfig,
     BehaviorTreeDebugGizmos, BehaviorTreeDebugRender, BehaviorTreeHandlers, BehaviorTreeInstance,
     BehaviorTreeLibrary, BehaviorTreePlugin, BehaviorTreeRunState, BehaviorTreeSystems,
-    BlackboardKeyDirection, BranchAborted, ConditionHandler, ServiceBinding,
-    ServiceHandler, TreeCompleted,
+    BlackboardKeyDirection, BranchAborted, ConditionHandler, ServiceBinding, ServiceHandler,
+    TreeCompleted,
 };
 use saddle_ai_behavior_tree_example_common as common;
 use saddle_pane::prelude::*;
