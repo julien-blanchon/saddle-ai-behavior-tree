@@ -1,7 +1,10 @@
+mod support;
+
 use bevy::prelude::*;
 use saddle_bevy_e2e::{action::Action, actions::assertions, scenario::Scenario};
 
 use crate::{BehaviorTreeLabPane, BehaviorTreeRunState, LabAgent, LabStats};
+use support::{wait_for_aborts, wait_for_completions, wait_for_service_ticks};
 
 pub fn list_scenarios() -> Vec<&'static str> {
     vec![
@@ -118,13 +121,7 @@ fn bt_chase_trigger() -> Scenario {
         .then(Action::Screenshot("chase_before".into()))
         // Now make target visible
         .then(reveal_target())
-        .then(Action::WaitUntil {
-            label: "service ticks at least once after reveal".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().service_ticks >= 2
-            }),
-            max_frames: 60,
-        })
+        .then(wait_for_service_ticks(2, 60))
         .then(assertions::component_satisfies::<saddle_ai_behavior_tree::BehaviorTreeInstance>(
             "tree still running after reveal",
             |instance| !matches!(instance.status, BehaviorTreeRunState::Deactivated),
@@ -143,24 +140,12 @@ fn bt_reactive_abort() -> Scenario {
         .then(Action::WaitFrames(20))
         // Enable chase
         .then(reveal_target())
-        .then(Action::WaitUntil {
-            label: "service ticks observed".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().service_ticks >= 2
-            }),
-            max_frames: 60,
-        })
+        .then(wait_for_service_ticks(2, 60))
         .then(Action::WaitFrames(10))
         .then(Action::Screenshot("abort_before".into()))
         // Hide target to trigger abort
         .then(hide_target())
-        .then(Action::WaitUntil {
-            label: "at least one abort recorded".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().aborts >= 1
-            }),
-            max_frames: 120,
-        })
+        .then(wait_for_aborts(1, 120))
         .then(assertions::custom("abort count incremented", |world| {
             world.resource::<LabStats>().aborts >= 1
         }))
@@ -176,13 +161,7 @@ fn bt_blackboard_updates() -> Scenario {
         .description("The sense_target service should write distance_to_target and target_visible into the blackboard each service interval.")
         .then(hide_target())
         .then(Action::WaitFrames(10))
-        .then(Action::WaitUntil {
-            label: "service ticked at least 3 times".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().service_ticks >= 3
-            }),
-            max_frames: 60,
-        })
+        .then(wait_for_service_ticks(3, 60))
         .then(assertions::custom("service ran multiple times", |world| {
             world.resource::<LabStats>().service_ticks >= 3
         }))
@@ -197,13 +176,7 @@ fn bt_tree_completion() -> Scenario {
     Scenario::builder("bt_tree_completion")
         .description("When the agent successfully chases and reaches the target (within arrival distance), TreeCompleted should be emitted and the tree restarts due to restart_on_completion.")
         .then(reveal_target())
-        .then(Action::WaitUntil {
-            label: "at least one completion observed".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().completions >= 1
-            }),
-            max_frames: 360,
-        })
+        .then(wait_for_completions(1, 360))
         .then(assertions::custom("tree completed at least once", |world| {
             world.resource::<LabStats>().completions >= 1
         }))
@@ -224,11 +197,7 @@ fn bt_service_interval() -> Scenario {
         .then(hide_target())
         .then(Action::WaitFrames(10))
         // Capture the service count at the start of the measurement window
-        .then(Action::WaitUntil {
-            label: "service ticked at least once to establish baseline".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().service_ticks >= 1),
-            max_frames: 60,
-        })
+        .then(wait_for_service_ticks(1, 60))
         .then(Action::Screenshot("service_interval_start".into()))
         .then(Action::WaitFrames(1))
         // Wait ~3s — at 0.15s interval that is ~20 ticks minimum
@@ -254,36 +223,20 @@ fn bt_multi_abort_cycle() -> Scenario {
         .then(Action::WaitFrames(20))
         // Cycle 1
         .then(reveal_target())
-        .then(Action::WaitUntil {
-            label: "cycle 1: service ticks observed".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().service_ticks >= 2),
-            max_frames: 60,
-        })
+        .then(wait_for_service_ticks(2, 60))
         .then(Action::WaitFrames(10))
         .then(hide_target())
-        .then(Action::WaitUntil {
-            label: "cycle 1: first abort recorded".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().aborts >= 1),
-            max_frames: 120,
-        })
+        .then(wait_for_aborts(1, 120))
         // Cycle 2
         .then(reveal_target())
         .then(Action::WaitFrames(15))
         .then(hide_target())
-        .then(Action::WaitUntil {
-            label: "cycle 2: second abort recorded".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().aborts >= 2),
-            max_frames: 120,
-        })
+        .then(wait_for_aborts(2, 120))
         // Cycle 3
         .then(reveal_target())
         .then(Action::WaitFrames(15))
         .then(hide_target())
-        .then(Action::WaitUntil {
-            label: "cycle 3: third abort recorded".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().aborts >= 3),
-            max_frames: 120,
-        })
+        .then(wait_for_aborts(3, 120))
         .then(assertions::custom(
             "3 hide/reveal cycles produced ≥ 3 aborts",
             |world| world.resource::<LabStats>().aborts >= 3,
@@ -304,22 +257,14 @@ fn bt_completion_restart() -> Scenario {
         )
         .then(reveal_target())
         // Wait for a first completion
-        .then(Action::WaitUntil {
-            label: "first completion".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().completions >= 1),
-            max_frames: 360,
-        })
+        .then(wait_for_completions(1, 360))
         .then(assertions::custom("at least one completion", |world| {
             world.resource::<LabStats>().completions >= 1
         }))
         .then(Action::Screenshot("restart_after_first".into()))
         .then(Action::WaitFrames(1))
         // Wait for a second completion — proves restart happened
-        .then(Action::WaitUntil {
-            label: "second completion (restart confirmed)".into(),
-            condition: Box::new(|world| world.resource::<LabStats>().completions >= 2),
-            max_frames: 360,
-        })
+        .then(wait_for_completions(2, 360))
         .then(assertions::custom(
             "two completions confirm restart loop",
             |world| world.resource::<LabStats>().completions >= 2,
@@ -341,13 +286,7 @@ fn bt_metrics_accumulate() -> Scenario {
     Scenario::builder("bt_metrics_accumulate")
         .description("After running for several seconds, the behavior tree should have accumulated service ticks and the BehaviorTreeMetrics component should be populated.")
         .then(Action::WaitFrames(10))
-        .then(Action::WaitUntil {
-            label: "service ticks accumulate".into(),
-            condition: Box::new(|world| {
-                world.resource::<LabStats>().service_ticks >= 5
-            }),
-            max_frames: 120,
-        })
+        .then(wait_for_service_ticks(5, 120))
         .then(assertions::custom("metrics: service ticks > 0", |world| {
             world.resource::<LabStats>().service_ticks > 0
         }))
